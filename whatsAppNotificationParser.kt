@@ -1,7 +1,3 @@
-import android.app.Notification
-import android.service.notification.StatusBarNotification
-import kotlin.math.pow
-
 /*
 MIT License
 
@@ -39,6 +35,9 @@ does not imply any endorsement.
 This software is provided "as is," without warranty of any kind. Use at your own risk.
 */
 
+import android.app.Notification
+import android.service.notification.StatusBarNotification
+import kotlin.math.pow
 
 enum class WhatsAppMessageType {
     /**
@@ -344,6 +343,7 @@ class WhatsAppMessage(
         fun isMessageWithoutSender(content: String): Boolean{
             return content.endsWith(" added you") || content.matches("^.*Reacted .* \\+[0-9]+ to \".*\"$".toMultilineMatchingRegex())
         }
+        @Throws(WhatsAppNotificationParserException::class)
         fun getByMessageWithoutSender(content: String, EXTRA_TITLE: String, areDifferentChats: Boolean, EXTRA_CONVERSATION_TITLE: String?): WhatsAppMessage?{
             return if(content.endsWith("added you$")) {
                 if(areDifferentChats){ // Multiple chats, format changes to "Group: XXX added you"
@@ -381,6 +381,7 @@ class WhatsAppMessage(
                 null
             }
         }
+        @Throws(WhatsAppNotificationParserException::class)
         fun by(initialContent: String, initialSender: String, initialGroup: String?, initialMessageType: WhatsAppMessageType?=null): WhatsAppMessage{
             val group: String?
             val messageType: WhatsAppMessageType
@@ -452,8 +453,9 @@ class WhatsAppMessage(
 
 class WhatsAppNotificationParserException(message: String): Exception(message)
 
-fun newParser(sbn: StatusBarNotification): List<WhatsAppMessage>?{
-    val extras=sbn.notification.extras
+@Throws(WhatsAppNotificationParserException::class)
+fun StatusBarNotification.parseWhatsAppStatusBarNotification(): List<WhatsAppMessage>?{
+    val extras=this.notification.extras
     val allMessages = mutableListOf<WhatsAppMessage>()
     val EXTRA_SUMMARY_TEXT = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()
     val EXTRA_TITLE = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: return null // Aren't required everywhere, but are always defined, if not, something is wrong
